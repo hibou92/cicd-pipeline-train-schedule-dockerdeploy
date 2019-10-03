@@ -15,9 +15,9 @@ pipeline {
             steps {
                 script {
                     def app = docker.build("jayson911/train-schedule")
-                    //app.inside {
-                    //    sh 'echo $(curl localhost:8080)'
-                    //}
+                    app.inside {
+                        sh 'echo $(curl localhost:8080)'
+                    }
                 }
             }
         }
@@ -41,12 +41,12 @@ pipeline {
             steps {
                 input 'Deploy to Production?'
                 milestone(1)
-                WithCredentials([usernamePassword(credentialsId: 'webserver_login', usernameVariable: 'USERNAME', passwordVariable: 'USERPASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'webserver_login', usernameVariable: 'USERNAME', passwordVariable: 'USERPASS')]) {
                     script {
                         sh "sshpass -p '$USERPASS' -v ssh -o StrictHostKeyChecking=no $USERNAME@$prod_ip \"docker pull jayson911/train-schedule:${env.BUILD_NUMBER}\""
                         try {
-                            ssh "sshpass -p '$USERPASS' -v ssh -o StrictHostChecking=no $USERNAME@$prod_id \"docker stop train-schedule\""
-                            ssh "sshpass -p '$USERPASS' -v ssh -o StrictHostChecking=no $USERNAME@$prod_id \"docker start train-schedule\""
+                            ssh "sshpass -p '$USERPASS' -v ssh -o StrictHostKeyChecking=no $USERNAME@$prod_id \"docker stop train-schedule\""
+                            ssh "sshpass -p '$USERPASS' -v ssh -o StrictHostKeyChecking=no $USERNAME@$prod_id \"docker start train-schedule\""
                         }
                         catch (err) {
                             echo : 'caught error : $err'
