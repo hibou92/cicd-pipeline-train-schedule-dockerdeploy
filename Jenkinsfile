@@ -8,5 +8,50 @@ pipeline {
                 archiveArtifacts artifacts: 'dist/trainSchedule.zip'
             }
         }
+        stage('Build Docker Image'){
+            when {
+                branch 'master'
+            }
+            steps {
+                script {
+                    def app = docker.build('jayson911/train-schedule')
+                    app.inside {
+                        sh 'curl localhost:3000'
+                    }
+                }
+            }
+        }
+        stage('Push Docker Image'){
+            when {
+                branch 'master'
+            }
+            steps {
+                script {
+                    docker.withregistry('https://registry.hub.docker.com', 'docker_hub_login'){
+                        app.push(${env.BUILD_NUMBER})
+                        app.push('latest')
+                    }
+                }
+            }
+        }
+        stage('DeployToProduction') {
+            milestone(1)
+            steps {
+                WithCredentials([usernamePassword(credentialsId: 'webserver_login', usernameVariable: 'USERNAME', passwordVariable: 'USERPASS']) {
+                    script {
+                        sh "sshpass -p '$USERPASS' -v ssh -o StrictHostKeyChecking=no $USERNAME@$prod_ip \"docker pull jayson911/train-schedule:${env.BUILD_NUMBER}\""
+                        try {
+                            ssh "sshpass -p '$USERPASS' -v ssh -o StrictHostChecking=no $USERNAME@$prod_id \"docker stop train-schedule\""
+                            ssh "sshpass -p '$USERPASS' -v ssh -o StrictHostChecking=no $USERNAME@$prod_id \"docker start train-schedule\""
+                        }
+                        catch (err) {
+                            echo : 'caught error : $err'
+                        }
+                        sh "sshpass -p '$USERPASS' -v ssh -o StrictHostKeyChecking=no $USERNAME@$prod_id \"docker run --restart always --name train-schedule -p 8080:8080 -d jayson911/train-schedule:${env.BUILD_NUMBER}\""
+                    }
+                }
+            }
+                
+        }
     }
 }
