@@ -37,7 +37,7 @@ pipeline {
         stage('DeployToProduction') {
             milestone(1)
             steps {
-                WithCredentials([usernamePassword(credentialsId: 'webserver_login', usernameVariable: 'USERNAME', passwordVariable: 'USERPASS']) {
+                WithCredentials([usernamePassword(credentialsId: 'webserver_login', usernameVariable: 'USERNAME', passwordVariable: 'USERPASS')]) {
                     script {
                         sh "sshpass -p '$USERPASS' -v ssh -o StrictHostKeyChecking=no $USERNAME@$prod_ip \"docker pull jayson911/train-schedule:${env.BUILD_NUMBER}\""
                         try {
